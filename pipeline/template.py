@@ -372,14 +372,14 @@ class PipelineTemplate(object):
             ),
             Name=Sub('${ApplicationName}-build'),
             Environment=codebuild.Environment(
-                ComputeType='BUILD_GENERAL1_SMALL',
+                ComputeType='BUILD_GENERAL1_LARGE',
                 Image=Ref('CodeBuildImage'),
                 Type='LINUX_CONTAINER',
                 EnvironmentVariables=[
                     codebuild.EnvironmentVariable(
                         Name='APP_S3_BUCKET',
-                        Value=Ref('ApplicationBucket')
-                    )
+                        Value=Ref('ApplicationBucket'),
+                    ),
                 ]
             ),
             ServiceRole=code_build_role.GetAtt('Arn'),
