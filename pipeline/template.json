@@ -202,7 +202,6 @@
                   "StackName": {
                     "Fn::Sub": "${ApplicationName}-beta-stack"
                   },
-                  "TemplateConfiguration": "CompiledCFNTemplate::dev-params.json",
                   "TemplatePath": "CompiledCFNTemplate::transformed.yaml"
                 },
                 "InputArtifacts": [

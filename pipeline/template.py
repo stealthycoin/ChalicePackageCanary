@@ -331,10 +331,8 @@ class PipelineTemplate(object):
                             'RoleArn': cfn_deploy_role.GetAtt('Arn'),
                             'Capabilities': 'CAPABILITY_IAM',
                             'StackName': Sub('${ApplicationName}-beta-stack'),
-                            'TemplateConfiguration': (
-                                'CompiledCFNTemplate::dev-params.json'),
                             'TemplatePath': (
-                                'CompiledCFNTemplate::transformed.yaml')
+                                'CompiledCFNTemplate::transformed.yaml'),
                         }
                     ),
                     codepipeline.Actions(
