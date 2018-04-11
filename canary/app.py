@@ -1,4 +1,6 @@
 import os
+import json
+import codecs
 import logging
 import tempfile
 from subprocess import run
@@ -15,17 +17,10 @@ app.debug = True
 app.log.setLevel(logging.INFO)
 
 
-_PACKAGE_LIST = [
-    'cryptography',
-    'Mako',
-    'MarkupSafe',
-    'SQLAlchemy',
-]
-
-
-# @app.route('/')
-# def index():
-#     _check_installability()
+_ROOT = os.path.dirname(os.path.abspath(__file__))
+_PACKAGE_FILE = os.path.join(_ROOT, 'chalicelib', 'packages.json')
+_PACKAGE_LIST = json.loads(codecs.open(_PACKAGE_FILE, 'r',
+                                       encoding='utf-8').read())
 
 
 @app.schedule('rate(1 hour)')
@@ -38,7 +33,8 @@ def _check_installability():
         venv_dir = _create_and_activate_venv(tempdir)
         py_exe = os.path.join(venv_dir, 'bin', 'python')
         chalice_exe = _install_chalice(py_exe)
-        threads = [Thread(target=_check_can_package, args=(chalice_exe, package, tempdir))
+        threads = [Thread(target=_check_can_package,
+                          args=(chalice_exe, package, tempdir))
                    for package in _PACKAGE_LIST]
         for thread in threads:
             thread.start()
@@ -77,7 +73,7 @@ def _check_can_package(chalice_exe, package_name, tempdir):
 
 
 def _send_metric(package_name, success):
-    response = boto3.client('cloudwatch').put_metric_data(
+    boto3.client('cloudwatch').put_metric_data(
         Namespace='ChalicePackageCanary',
         MetricData=[
             {
@@ -92,4 +88,3 @@ def _send_metric(package_name, success):
             }
         ]
     )
-    print(response)

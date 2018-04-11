@@ -1,0 +1,6 @@
+[
+    "cryptography",
+    "Mako",
+    "MarkupSafe",
+    "SQLAlchemy"
+]

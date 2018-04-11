@@ -1,12 +1,11 @@
 from troposphere import Ref, Template, Parameter, Output, Sub
-from troposphere import codebuild, s3, iam, codepipeline, sns, events
+from troposphere import codebuild, s3, iam, codepipeline, sns
 from awacs.aws import Policy, Statement, Allow, Action, Principal
 
 from awacs.helpers.trust import make_simple_assume_policy
 from awacs import sts as _sts
 from awacs import logs as _logs
 from awacs import s3 as _s3
-from awacs import sns as _sns
 from awacs import cloudformation as _cfn
 
 
@@ -395,67 +394,11 @@ class PipelineTemplate(object):
         return artifact_bucket_store
 
     def _allow_assume_role_service(self, service_name):
-        # make_simple_assume_policy does not add a version number,
-        # so this is a wrapper that injects the version string.
         policy = make_simple_assume_policy(
             '%s.amazonaws.com' % service_name,
         )
         policy.Version = '2012-10-17'
         return policy
-
-    def _add_pipeline_notifications(self, pipeline):
-        subscriptions = self._create_sns_subscriptions()
-        topic = sns.Topic(
-            'AppPipelineDeployments',
-            DisplayName='AppPipelineDeployments',
-            Subscription=subscriptions,
-        )
-        self._t.add_resource(topic)
-
-        topic_policy = sns.TopicPolicy(
-            'AllowCloudWatchEventsPublish',
-            PolicyDocument=Policy(
-                Version='2012-10-17',
-                Statement=[
-                    Statement(
-                        Sid='AllowCloudWatchEventsToPublish',
-                        Effect=Allow,
-                        Action=[_sns.Publish],
-                        Principal=Principal('Service', 'events.amazonaws.com'),
-                        Resource=[topic.Ref()],
-                    )
-                ]
-            ),
-            Topics=[topic.Ref()],
-        )
-        self._t.add_resource(topic_policy)
-
-        sns_target = [events.Target(Id='1', Arn=topic.Ref())]
-        cw_event = events.Rule(
-            'PipelineEvents',
-            Description='CloudWatch Events Rule for app pipeline.',
-            EventPattern={
-                "source": [
-                    "aws.codepipeline"
-                ],
-                "detail-type": [
-                    'CodePipeline Action Execution State Change',
-                ],
-                'detail': {
-                    'type': {
-                        # Notify when a deploy fails/succeeds
-                        # or when an approval is needed.
-                        # We could also add something when any
-                        # part of the pipeline fails.
-                        'category': ['Deploy', 'Approval'],
-                    },
-                    'pipeline': [pipeline.Ref()],
-                }
-            },
-            Targets=sns_target,
-        )
-        self._t.add_resource(cw_event)
-        return topic
 
     def _create_sns_subscriptions(self):
         protocol = Parameter(

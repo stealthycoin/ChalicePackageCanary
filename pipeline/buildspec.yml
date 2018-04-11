@@ -3,8 +3,8 @@ phases:
   install:
     commands:
       - ls -la
-      - chmod +x pipeline/build.sh
-      - ./pipeline/build.sh
+      - chmod +x build.sh
+      - ./build.sh
 artifacts:
   type: zip
   files:
