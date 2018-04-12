@@ -121,8 +121,11 @@ DASHBOARD = {
 
 def inject_dashboard(args):
     template = _load_template(args.template_path)
+    packages = _load_packages(args.packages)
+    _inject_alarms(template, packages)
+
     canary_lambda = template.resources['Canary']
-    dashboard_body = _build_dashboard_body(canary_lambda, args.packages)
+    dashboard_body = _build_dashboard_body(canary_lambda, packages)
     dashboard = cloudwatch.Dashboard(
         'ChalicePackaging',
         DashboardName='ChalicePackaging',
@@ -139,9 +142,35 @@ def _load_template(template_path):
     return template
 
 
-def _build_dashboard_body(canary_lambda, packages_file):
+def _load_packages(packages_file):
     raw_packages = codecs.open(packages_file, 'r', encoding='utf-8').read()
     packages = json.loads(raw_packages)
+    return packages
+
+
+def _inject_alarms(template, packages):
+    for package in packages:
+        cannot_package_alarm = cloudwatch.Alarm(
+            'CannotPackage%s' % package,
+            AlarmDescription=(
+                'Alarm that triggers if Chalice fails to package %s.' % package
+            ),
+            ComparisonOperator='LessThanThreshold',
+            EvaluationPeriods=1,
+            Period=3600,
+            MetricName='package',
+            Namespace='ChalicePackageCanary',
+            Threshold='1',
+            Statistic='Minimum',
+            Dimensions=[cloudwatch.MetricDimension(
+                Name='Name',
+                Value=package
+            )]
+        )
+        template.add_resource(cannot_package_alarm)
+
+
+def _build_dashboard_body(canary_lambda, packages):
     metrics = []
     prefix = ["ChalicePackageCanary", "package", "Name"]
     for package in packages:
